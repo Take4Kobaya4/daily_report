@@ -13,6 +13,8 @@ DBはPostgreSQLを使用し、Prismaでアクセスする。
 
 Better Authが管理する認証テーブルを独自実装で置き換えない。
 
+ログインIDはBetter Authの`username`プラグインを使用し、`user`テーブルに`username`（ユニーク、小文字に正規化）と`displayUsername`（入力どおりの表記）が追加される。カラムはBetter AuthのCLIで生成したスキーマに従う。
+
 ---
 
 ## 2. Report
@@ -46,7 +48,7 @@ Better Authが管理する認証テーブルを独自実装で置き換えない
 - 外部キー制約を適切に設定する。
 - 必要なインデックスを設定する。
 - N+1クエリを避ける。
-- DBアクセスはRepositoryに集約する。
+- DBアクセスは`external/repository`に集約する。
 - 業務ルールは原則としてServiceに実装する。
 - 不必要なトランザクションは使用しない。
 - 必要な複数操作の整合性はトランザクションで保証する。

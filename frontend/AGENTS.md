@@ -19,9 +19,11 @@ MVP段階では将来の機能を先行実装しない。
 |---|---|
 | [../docs/requirements.md](../docs/requirements.md) | 概要、MVPスコープ・対象外機能、業務ルール、将来の拡張 |
 | [../docs/use-cases.md](../docs/use-cases.md) | 機能ごとの操作フロー・代替フロー |
-| [../docs/architecture.md](../docs/architecture.md) | 技術スタック、設計方針、ディレクトリ構成、Server / Client、Container / Presentational、フォーム、認証・認可、Go移行方針 |
+| [../docs/architecture.md](../docs/architecture.md) | 技術スタック、設計方針、ディレクトリ構成、Server / Client、Container / Presenter、フォーム、認証・認可、Go移行方針 |
 | [../docs/database-design.md](../docs/database-design.md) | テーブル定義、制約、DB設計ルール |
 | [../docs/api-design.md](../docs/api-design.md) | エンドポイント、APIルール、ステータスコード |
+
+フロントエンドの実装ガイド（レイヤー構成、Container / Presenter、TanStack Query、フォーム、認証など）は[./docs/](./docs/README.md)にまとめている。
 
 仕様を変更した場合は、関連するドキュメントも更新すること。
 

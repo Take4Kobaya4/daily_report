@@ -46,9 +46,9 @@ ESLint・Prettierは原則として追加せず、Biomeを使用する。
 
 1. Feature-Based Architecture
 2. Server Component / Client Componentの責務分離
-3. Container / Presentationalパターン
-4. 業務ロジックとDBアクセスの分離
-5. 将来的なGoへのAPI移行を考慮した設計
+3. Container / Presenterパターン（1コンポーネント1ディレクトリ）
+4. 外部接続（DB・外部API）を`external/`に分離
+5. 将来的なGoへのAPI移行を考慮した設計（接続先の切り替えは`external/service`のみ）
 
 ### General Rules
 
@@ -71,10 +71,10 @@ ESLint・Prettierは原則として追加せず、Biomeを使用する。
 ```text
 src/
 ├── app/
-│   ├── (auth)/
+│   ├── (guest)/
 │   │   ├── login/
 │   │   └── register/
-│   ├── (dashboard)/
+│   ├── (authenticated)/
 │   │   └── reports/
 │   │       ├── page.tsx
 │   │       ├── new/
@@ -87,30 +87,39 @@ src/
 │
 ├── features/
 │   ├── auth/
-│   │   ├── client/
-│   │   ├── server/
-│   │   └── shared/
+│   │   ├── components/
+│   │   │   ├── server/
+│   │   │   └── client/
+│   │   ├── schemas/
+│   │   └── servers/
 │   └── reports/
-│       ├── client/
-│       │   ├── containers/
-│       │   ├── presentational/
-│       │   ├── hooks/
-│       │   └── api/
-│       ├── server/
-│       │   ├── components/
-│       │   ├── services/
-│       │   └── repositories/
-│       └── shared/
-│           ├── schemas/
-│           └── types/
+│       ├── components/
+│       │   ├── server/            # XxxPageTemplate/
+│       │   └── client/            # Xxx/（Container・Presenter・専用Hook）
+│       ├── hooks/
+│       ├── queries/
+│       └── api/
 │
-├── components/
-│   └── ui/
-├── lib/
-│   ├── auth/
-│   └── db/
-└── providers/
+├── shared/
+│   ├── components/
+│   │   └── ui/
+│   ├── lib/
+│   │   └── auth/
+│   ├── hooks/
+│   └── providers/
+│
+├── external/
+│   ├── client/
+│   │   └── database/
+│   ├── domain/
+│   ├── dto/
+│   ├── handler/
+│   ├── repository/
+│   └── service/
 ```
+
+- `features/`：その機能のページ群でしか使わないものをひとまとめにする。
+- `shared/`：複数のFeatureで使うものを配置する。最初は`features/`に置き、2つ以上のFeatureで必要になった時点で移動する。
 
 ディレクトリは必要になった段階で追加すること。
 
@@ -142,8 +151,8 @@ src/
 ### Example
 
 ```tsx
-import { ReportDetailPage } from
-  "@/features/reports/server/components/ReportDetailPage";
+import { ReportDetailPageTemplate } from
+  "@/features/reports/components/server/ReportDetailPageTemplate";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -152,11 +161,11 @@ type Props = {
 export default async function Page({ params }: Props) {
   const { id } = await params;
 
-  return <ReportDetailPage reportId={id} />;
+  return <ReportDetailPageTemplate reportId={id} />;
 }
 ```
 
-Route HandlersもHTTPリクエスト・レスポンスの責務に限定し、業務ロジックはService層へ委譲する（[api-design.md](./api-design.md)）。
+Route HandlersもHTTPリクエスト・レスポンスの責務に限定し、処理は`external/handler`へ委譲する（[api-design.md](./api-design.md)）。
 
 ---
 
@@ -166,23 +175,21 @@ Route HandlersもHTTPリクエスト・レスポンスの責務に限定し、�
 
 ### Server
 
-配置先：`features/{feature}/server/`
+配置先：`features/{feature}/components/server/`（PageTemplate）、`features/{feature}/servers/`（サーバー専用の関数）
 
 責務：
 
-- Server Components
-- 認証・認可確認
-- サーバー側データ取得
-- 業務ロジック
-- DBアクセス
+- ページ単位のServer Components（`XxxPageTemplate`）
+- 認証確認
+- `external/handler`によるサーバー側データ取得
 
-DBアクセスはRepositoryに集約する。
+業務ロジック・DBアクセスは`features/`ではなく`external/`に実装する（後述の「External Layer」）。
 
 サーバー専用モジュールでは、必要に応じて`server-only`を使用する。
 
 ### Client
 
-配置先：`features/{feature}/client/`
+配置先：`features/{feature}/components/client/`（1コンポーネント1ディレクトリ）
 
 責務：
 
@@ -198,41 +205,73 @@ DBアクセスはRepositoryに集約する。
 
 ### Shared
 
-配置先：`features/{feature}/shared/`
+配置先：`shared/`
 
 責務：
 
-- TypeScript型
-- Zodスキーマ
-- Server / Clientの両方で利用できる純粋関数
+- 複数のFeatureで利用するUI・Hook・設定（shadcn/ui、QueryClient、Provider、Better Auth設定など）
 
-サーバー専用処理、DB接続、秘密情報をSharedへ配置しない。
+APIの入出力の型・Zodスキーマは`external/dto`に定義する。
+
+DB接続を`shared/`へ配置しない（`external/client`に置く）。
+
+### External Layer
+
+配置先：`external/`
+
+DB・外部APIとの境界をまとめる。
+
+| ディレクトリ | 責務 |
+|---|---|
+| `client/` | DB接続・HTTPクライアント |
+| `domain/` | entity |
+| `dto/` | リクエスト・レスポンスのZodスキーマと型 |
+| `handler/` | 入口。入力検証、service呼び出し、レスポンスへの変換 |
+| `service/` | 業務ロジック。接続先（repository / API）の選択 |
+| `repository/` | PrismaによるDBアクセス |
+
+- 入口は`handler`のみとし、features / appからservice・repositoryを直接呼ばない。
+- serviceはdomainのentityを返す。
+- DBアクセスはrepositoryに集約する。
+
+詳細は[frontend/docs/05_external_layer.md](../frontend/docs/05_external_layer.md)を参照。
 
 ---
 
-## 6. Container / Presentational Pattern
+## 6. Container / Presenter Pattern
 
-Client Componentでは原則としてContainer / Presentationalパターンを採用する。
+Client Componentでは原則としてContainer / Presenterパターンを採用し、1つのコンポーネントにつき1ディレクトリにまとめる。
 
-ただし、すべてのコンポーネントを無条件に分割しない。
+```text
+features/reports/components/client/ReportList/
+├── index.ts                  # Containerのみを公開
+├── ReportListContainer.tsx
+├── ReportListPresenter.tsx
+└── useReportList.ts          # このコンポーネント専用のHook
+```
+
+ロジックを持たない小さなコンポーネントは、無理に分割しない。
 
 ### Container
 
-配置先：`client/containers/`
+責務：
+
+- 専用Hookの呼び出し
+- Presenterへのデータ受け渡し
+
+ContainerはDOMを直接描画しない。
+
+### 専用Hook
 
 責務：
 
-- カスタムHookの呼び出し
 - TanStack Queryの利用
 - React Hook Formによるフォーム制御
 - イベントハンドラ
 - UIに渡すデータの整形
 - 画面遷移
-- ローディング・エラー状態の制御
 
-### Presentational
-
-配置先：`client/presentational/`
+### Presenter
 
 責務：
 
@@ -242,24 +281,28 @@ Client Componentでは原則としてContainer / Presentationalパターンを�
 
 原則として以下は行わない。
 
+- 状態・副作用
 - API通信
 - DBアクセス
 - 業務ロジックの実装
-- グローバル状態への不要な依存
+
+Presenterは同じディレクトリのContainerからのみ呼び出す。
 
 ### Component Reuse
 
-日報作成と日報編集では、共通の`ReportForm`を利用する。
+日報作成と日報編集では、共通の`ReportForm`を利用する。他コンポーネントからは`index.ts`経由でContainerを呼び出す。
 
 ```text
-ReportCreateContainer
+ReportCreatePresenter
         |
         v
-    ReportForm
+    ReportForm（ReportFormContainer）
         ^
         |
-ReportEditContainer
+ReportEditPresenter
 ```
+
+詳細は[frontend/docs/04_features_structure.md](../frontend/docs/04_features_structure.md)を参照。
 
 ---
 
@@ -315,7 +358,8 @@ MVP完成後、必要に応じてGoバックエンドへの移行を検討する
 - フロントエンドはNext.js + TypeScriptを継続する。
 - API契約を可能な限り維持する。
 - HTTP処理と業務ロジックを分離する。
-- DBアクセスをRepositoryに集約する。
+- DBアクセスを`external/repository`に集約する。
+- Goへの移行時は、`external/service`の呼び出し先をrepositoryからAPIクライアントへ切り替える。handler・dto・domain・features・appは変更しない。
 - Goへの移行を理由にMVPの実装を複雑にしない。
 - 認証・セッション連携は移行時に別途設計する。
 - Goへの移行はAPI単位で段階的に進める。
