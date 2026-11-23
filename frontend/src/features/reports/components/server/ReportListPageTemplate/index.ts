@@ -1,0 +1,1 @@
+export { ReportListPageTemplate } from "./ReportListPageTemplate";
