@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   type LoginInput,
@@ -29,6 +29,17 @@ export function useLoginForm() {
     resolver: zodResolver(LoginSchema),
     defaultValues: { username: "", password: "" },
   });
+
+  // cacheComponents では遷移元の画面が破棄されず state が保持される（React の Activity）。
+  // ログアウトして戻ったときに送信中のままにならず、パスワードも残さないよう、画面を離れるときに初期化する
+  const { reset } = form;
+  useEffect(
+    () => () => {
+      setIsRedirecting(false);
+      reset();
+    },
+    [reset],
+  );
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setErrorMessage(undefined);
