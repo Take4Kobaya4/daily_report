@@ -1,9 +1,232 @@
 <!-- BEGIN:nextjs-agent-rules -->
+# AGENTS.md
 
-## This is NOT the Next.js you know
+## 1. Project Overview
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+本プロジェクトは、個人向け日報・作業記録Webアプリケーションである（Next.js + TypeScriptによるフルスタック構成）。
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+**MVPの完成を最優先し、過剰な抽象化や過剰設計を避けること。**
+
+MVP段階では将来の機能を先行実装しない。
+
+---
+
+## 2. Documents
+
+設計の詳細は`../docs/`（リポジトリ直下）を正とする。実装前に関連するドキュメントを確認すること。
+
+| ドキュメント | 内容 |
+|---|---|
+| [../docs/requirements.md](../docs/requirements.md) | 概要、MVPスコープ・対象外機能、業務ルール、将来の拡張 |
+| [../docs/use-cases.md](../docs/use-cases.md) | 機能ごとの操作フロー・代替フロー |
+| [../docs/architecture.md](../docs/architecture.md) | 技術スタック、設計方針、ディレクトリ構成、Server / Client、Container / Presentational、フォーム、認証・認可、Go移行方針 |
+| [../docs/database-design.md](../docs/database-design.md) | テーブル定義、制約、DB設計ルール |
+| [../docs/api-design.md](../docs/api-design.md) | エンドポイント、APIルール、ステータスコード |
+
+仕様を変更した場合は、関連するドキュメントも更新すること。
+
+---
+
+## 3. TypeScript / Coding Rules
+
+- TypeScriptのstrict modeを維持する。
+- 原則として`any`を使用しない。
+- 型アサーションの乱用を避ける。
+- Propsの型を明確に定義する。
+- 不要な状態管理を増やさない。
+- 不変性を意識して実装する。
+- 関数名・変数名から目的が分かるようにする。
+- マジックナンバーは必要に応じて定数化する。
+- コメントは処理内容より理由や制約を説明する。
+- 不要なコメントや冗長なドキュメントを追加しない。
+
+コードの整形・LintはBiomeに統一する。
+
+---
+
+## 4. Testing Policy
+
+本プロジェクトでは、ビジネスロジックおよび重要なユーザー操作を優先してテストする。
+
+### Unit Tests
+
+対象：
+
+- Zodバリデーション
+- 日付変換
+- 業務ロジック
+- 純粋関数
+
+### Component Tests
+
+React Testing Libraryを使用する。
+
+対象：
+
+- フォーム表示
+- バリデーションエラー表示
+- 日報一覧
+- 空状態
+- ローディング
+- APIエラー表示
+
+MSWでAPIレスポンスをモックする。
+
+### API Integration Tests
+
+対象：
+
+- 日報作成・取得・更新・削除
+- 未認証アクセス
+- 所有者チェック
+- DBへのデータ永続化
+- エラーレスポンス
+
+認可やDB整合性の検証にはテスト用DBを使用する。
+
+### E2E Tests
+
+Playwrightを使用する。
+
+主要なユーザーフローを優先する。
+
+- ユーザー登録
+- ログイン
+- 日報作成
+- 日報一覧・詳細
+- 日報編集
+- 日報削除
+
+### Testing Principles
+
+- 実装の詳細ではなく外部から観測できる振る舞いを検証する。
+- 重要な分岐・業務ロジックを優先する。
+- テストのためだけに本番コードを複雑にしない。
+- 不安定なテストを放置しない。
+- 既存機能の変更時は関連テストを更新する。
+
+---
+
+## 5. CI Policy
+
+GitHub Actionsを使用する。
+
+Pull RequestおよびmainブランチへのPushで品質チェックを実行する。
+
+### Required Checks
+
+```bash
+pnpm biome ci .
+pnpm typecheck
+pnpm test
+pnpm build
+```
+
+### CI Rules
+
+- CIが失敗している状態を放置しない。
+- Lint・型エラーを無視してマージしない。
+- テストの失敗原因を確認して修正する。
+- テストを削除してCIを通す対応は原則禁止する。
+- `pnpm-lock.yaml`をGit管理する。
+- CIでは`--frozen-lockfile`を使用する。
+
+---
+
+## 6. Security Rules
+
+- 秘密情報をソースコードへハードコードしない。
+- `.env`をGitへコミットしない。
+- 認証情報やセッショントークンをログへ出力しない。
+- 日報本文を不必要にログ出力しない。
+- サーバー側で必ず認証・認可を検証する。
+- DBクエリではユーザーIDによる所有者制限を行う。
+- Markdown表示ではXSS対策を実施する。
+- ユーザー入力を信用しない。
+- ライブラリの脆弱性情報を確認する。
+- 脆弱性対応時は影響範囲を確認してから更新する。
+
+---
+
+## 7. AI Agent Working Rules
+
+AIエージェントは以下を遵守すること。
+
+### Before Implementation
+
+1. 既存コードとディレクトリ構成を確認する。
+2. `../docs/`（リポジトリ直下）の関連ドキュメントを確認する。
+3. 関連する型・スキーマ・テストを確認する。
+4. 変更対象と影響範囲を把握する。
+5. 既存の設計方針に沿って実装する。
+6. 大きな設計変更や新規依存ライブラリの追加は、事前に理由を説明して確認を求める。
+
+### During Implementation
+
+- 必要最小限の変更を行う。
+- 関係のないコードを変更しない。
+- 既存の実装パターンを優先する。
+- 型安全性を維持する。
+- エラーハンドリングを適切に実装する。
+- テスト可能な構造にする。
+- 過剰な抽象化を避ける。
+- 明示的な指示なく新機能を追加しない。
+
+### After Implementation
+
+以下を確認する。
+
+1. Biomeチェックが成功すること。
+2. TypeScriptの型チェックが成功すること。
+3. 関連テストが成功すること。
+4. ビルドが成功すること。
+5. 既存機能へ影響がないこと。
+
+チェックを実行していない場合は、未実行であることを明示する。
+
+### Response Rules
+
+実装後の報告では、原則として以下を説明する。
+
+- 変更内容
+- 変更理由
+- 影響範囲
+- 動作確認・テスト結果
+- 未対応事項・注意点
+
+実際に実行していないテストや確認について、成功したと報告してはならない。
+
+---
+
+## 8. Definition of Done
+
+以下を満たした場合に作業完了とする。
+
+- 要件を満たしている
+- 既存の設計方針を守っている
+- TypeScriptの型エラーがない
+- Biomeチェックが成功する
+- 関連テストが成功する
+- 認証・認可が適切に実装されている
+- 必要なエラーハンドリングがある
+- 不必要なコード変更が含まれていない
+- 変更内容を説明できる
+
+---
+
+## 9. Priority
+
+実装時の判断優先順位は以下とする。
+
+1. セキュリティ
+2. 要件との整合性
+3. 正確性
+4. 可読性
+5. 保守性
+6. テスト容易性
+7. パフォーマンス
+8. 拡張性
+
+将来的な拡張性のために、現在のMVPの可読性や実装の単純さを犠牲にしないこと。
 
 <!-- END:nextjs-agent-rules -->
