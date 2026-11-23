@@ -22,7 +22,7 @@ Better Auth の `username` プラグインを使用し、**ログインID + パ�
 
 ```
 ┌──────────────┐   signUp / signIn / signOut   ┌──────────────────────┐
-│ auth feature │ ────────────────────────────▶ │ /api/auth/[...all]   │
+│ auth feature │ ────────────────────────────▶ │ /auth/[...all]       │
 │ (Client)     │      authClient               │ Better Auth Handler  │
 └──────────────┘                               └──────────┬───────────┘
                                                           │
@@ -50,8 +50,8 @@ Better Auth の `username` プラグインを使用し、**ログインID + パ�
 shared/lib/auth/           # proxy.ts・app/api・features から使うため shared に置く
 ├─ auth.ts                 # Better Auth サーバー設定
 └─ authClient.ts           # Better Auth クライアント
-app/api/auth/[...all]/
-└─ route.ts                # Better Auth の Route Handler
+app/(authenticated)/auth/[...all]/
+└─ route.ts                # Better Auth の Route Handler（/auth/*。認証不要のエンドポイントも含む）
 proxy.ts                   # 楽観的なリダイレクト（Next.js 16 の Proxy）
 
 features/auth/
@@ -70,7 +70,7 @@ features/auth/
    └─ requireSession.ts          # PageTemplate 用（未認証はリダイレクト）
 ```
 
-ログイン・登録は Better Auth の `authClient` が `/api/auth/*` を呼ぶため、`external/` を経由しません。
+ログイン・登録は Better Auth の `authClient` が `/auth/*` を呼ぶため、`external/` を経由しません。
 
 ## 設定
 
@@ -86,6 +86,8 @@ import { username } from "better-auth/plugins";
 import { prisma } from "@/external/client/database/prisma";
 
 export const auth = betterAuth({
+  // Route Handler の配置に合わせて既定の /api/auth から変更する
+  basePath: "/auth",
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   // username プラグインは emailAndPassword の上に成り立つため有効にしておく
   emailAndPassword: { enabled: true, minPasswordLength: 8, maxPasswordLength: 128 },
@@ -103,7 +105,7 @@ export const auth = betterAuth({
 - ログインはログインID + パスワード（`/sign-in/username`）のみとし、メールアドレスでのログイン API（`/sign-in/email`）は `disabledPaths` で無効化します。UI だけでなく API としても呼べない状態にします。
 
 ```ts
-// app/api/auth/[...all]/route.ts
+// app/(authenticated)/auth/[...all]/route.ts
 import { toNextJsHandler } from "better-auth/next-js";
 import { auth } from "@/shared/lib/auth/auth";
 
@@ -116,6 +118,7 @@ import { usernameClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 export const authClient = createAuthClient({
+  basePath: "/auth", // サーバー側の basePath と合わせる
   plugins: [usernameClient()],
 });
 ```

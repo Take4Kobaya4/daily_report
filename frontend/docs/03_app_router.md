@@ -16,6 +16,7 @@ app/
 │  ├─ login/
 │  └─ register/
 ├─ (authenticated)/   # ログイン必須
+│  ├─ auth/[...all]/    # Better Auth（/auth/*。エンドポイント自体は認証不要のものを含む）
 │  └─ reports/
 │     ├─ page.tsx       # 一覧
 │     ├─ new/           # 作成
@@ -23,7 +24,6 @@ app/
 │        ├─ page.tsx    # 詳細
 │        └─ edit/       # 編集
 └─ api/
-   ├─ auth/[...all]/    # Better Auth
    └─ reports/
       ├─ route.ts       # GET（一覧）/ POST（作成）
       └─ [id]/route.ts  # GET（詳細）/ PATCH（編集）/ DELETE（削除）
