@@ -26,14 +26,14 @@ Route HandlersはHTTPリクエスト・レスポンスの責務に限定し、�
 
 ### 1.2 認証API
 
-認証APIは自前で実装せず、Better Authが`/api/auth/*`に提供するエンドポイントを利用する（`username`プラグイン使用）。
+認証APIは自前で実装せず、Better Authが`/auth/*`に提供するエンドポイントを利用する（`username`プラグイン使用）。
 
 | Method | Path | Description | ユースケース | クライアント呼び出し |
 |---|---|---|---|---|
-| POST | /api/auth/sign-up/email | ユーザー登録（登録後ログイン状態にする） | UC-01 | `authClient.signUp.email` |
-| POST | /api/auth/sign-in/username | ログイン（ログインID + パスワード） | UC-02 | `authClient.signIn.username` |
-| POST | /api/auth/sign-out | ログアウト（セッション破棄） | UC-03 | `authClient.signOut` |
-| GET | /api/auth/get-session | セッション取得 | — | `authClient.getSession` / `useSession` |
+| POST | /auth/sign-up/email | ユーザー登録（登録後ログイン状態にする） | UC-01 | `authClient.signUp.email` |
+| POST | /auth/sign-in/username | ログイン（ログインID + パスワード） | UC-02 | `authClient.signIn.username` |
+| POST | /auth/sign-out | ログアウト（セッション破棄） | UC-03 | `authClient.signOut` |
+| GET | /auth/get-session | セッション取得 | — | `authClient.getSession` / `useSession` |
 
 #### リクエスト項目
 
@@ -46,7 +46,7 @@ Route HandlersはHTTPリクエスト・レスポンスの責務に限定し、�
 
 #### ルール
 
-- メールアドレスでのログイン（`/api/auth/sign-in/email`）は`disabledPaths`で無効化し、ログインはログインID + パスワードのみとする。
+- メールアドレスでのログイン（`/auth/sign-in/email`）は`disabledPaths`で無効化し、ログインはログインID + パスワードのみとする。
 - クライアントからは`authClient`経由で呼び出し、`fetch`で直接呼び出さない。
 - 認証に成功するとセッションCookieが発行され、日報APIはこのセッションからユーザーIDを取得する。
 - サーバー側（Server Component / Route Handler）でのセッション取得はHTTPを経由せず、`auth.api.getSession`を直接呼び出す。

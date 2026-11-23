@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+import { HomePageTemplate } from "@/features/auth/components/server/HomePageTemplate";
 
-
-export default function Home() {
-  return <div>Hello World</div>;
+// セッション（Cookie）の読み取りは cacheComponents のため Suspense 境界の内側で行う
+export default function Page() {
+  return (
+    <Suspense>
+      <HomePageTemplate />
+    </Suspense>
+  );
 }

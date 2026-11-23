@@ -1,0 +1,26 @@
+# 開発用の PostgreSQL
+#   起動: docker compose up -d   （frontend からは pnpm db:up）
+#   停止: docker compose down    （frontend からは pnpm db:down）
+#   データも削除: docker compose down -v
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: daily_report_db
+    environment:
+      POSTGRES_USER: daily_report
+      POSTGRES_PASSWORD: daily_report
+      POSTGRES_DB: daily_report
+      TZ: UTC
+    ports:
+      # ホスト側で Homebrew などの PostgreSQL（5432）と衝突しないよう 5433 で公開する
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daily_report -d daily_report"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db-data:
