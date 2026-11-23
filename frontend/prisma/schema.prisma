@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/external/client/database/generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 日報
+/// Better Auth の user テーブルへのリレーション（外部キー）は、
+/// Better Auth の CLI で認証テーブルのスキーマを生成するときに追加する。
+model Report {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// 作成者ID（Better Auth の user.id）
+  userId     String
+  title      String   @db.VarChar(200)
+  /// Markdown 本文
+  content    String   @db.Text
+  /// 日報日付（時刻を含まない）
+  reportDate DateTime @db.Date
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  /// 一覧取得（ユーザー単位・日付順）用
+  @@index([userId, reportDate])
+}
