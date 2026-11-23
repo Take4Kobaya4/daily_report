@@ -42,6 +42,7 @@ app/
 
 | パス | 画面 | ユースケース | 呼び出す PageTemplate |
 | --- | --- | --- | --- |
+| `/` | —（振り分けのみ） | — | なし（`page.tsx` 内で分岐） |
 | `/register` | ユーザー登録 | UC-01 | `RegisterPageTemplate` |
 | `/login` | ログイン | UC-02 | `LoginPageTemplate` |
 | `/reports` | 日報一覧 | UC-05 | `ReportListPageTemplate` |
@@ -67,6 +68,17 @@ export default async function Page(props: PageProps<"/reports/[id]">) {
 ```
 
 `PageProps` / `LayoutProps` はグローバル型のため import 不要です。ルートグループ `(authenticated)` はパスに含めません。
+
+### 例外：トップページ（`/`）
+
+`app/page.tsx` は画面を持たず、認証状態に応じて振り分けるだけのため、PageTemplate を作らずに `page.tsx` 内で分岐します。
+
+| 状態 | 遷移先 |
+| --- | --- |
+| 認証済み | `/reports` |
+| 未認証 | `/login` |
+
+セッションの読み取りは Suspense 境界の内側で行います（[Cache Components と Suspense](#cache-components-と-suspense)）。
 
 ### 悪い例 ❌
 
